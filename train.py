@@ -36,9 +36,9 @@ def test(model, test_loader, btrain=False, model_file=None):
 
     print('Accuracy of the model on the test images: %d %%' % (100 * float(correct) / total))
     print('Accuracy of the model on the test images:', float(correct) / total)
-    for i in range(10):
+    for i in range(6):
         print('Accuracy of %5s : %2d %%' % (
-            i, 100 * class_correct[i] / class_total[i]))
+            i+5001, 100 * class_correct[i] / class_total[i]))
     return correct / total
 
 # train_dir = '/home/liushuai/cleaned_images/train'
