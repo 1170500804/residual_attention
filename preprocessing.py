@@ -11,7 +11,7 @@ from torchvision import transforms, utils
 class GoogleStreetView(Dataset):
     def __init__(self, csv_path, transform=None, labels=None):
         self.df = pd.read_csv(csv_path)
-        self.tranform = transform
+        self.transform = transform
         classes = self.df.loc[:,'class'].unique()
         if(labels):
             self.labels = labels
@@ -27,6 +27,6 @@ class GoogleStreetView(Dataset):
         img_name = self.df.loc[idx, 'dir']
         image = Image.open(img_name)
         label = self.labels[self.df.loc[idx, 'class']]
-        if(self.tranform):
-            image = self.tranform(image)
+        if(self.transform):
+            image = self.transform(image)
         return (image, label)
