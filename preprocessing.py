@@ -11,7 +11,7 @@ class GoogleStreetView(Dataset):
     def __init__(self, csv_path, transform=None, labels=None):
         self.df = pd.read_csv(csv_path)
         self.tranform = transform
-        classes = self.df[:,'class'].unique()
+        classes = self.df.loc[:,'class'].unique()
         if(labels):
             self.labels = labels
         else:
