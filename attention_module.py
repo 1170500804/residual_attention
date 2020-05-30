@@ -433,7 +433,7 @@ class AttentionModule_stage2_cifar(nn.Module):
         self.first_residual_blocks = Residual_Block(in_channels, out_channels)
 
         self.trunk_branches = nn.Sequential(
-            ResidualBlock(in_channels, out_channels),
+            Residual_Block(in_channels, out_channels),
             Residual_Block(in_channels, out_channels)
          )
 

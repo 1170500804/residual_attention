@@ -51,7 +51,7 @@ test_dataset = GoogleStreetView(os.path.join(test_dir, 'description_test.csv')
                                 , transform=transform, labels=train_dataset.labels)
 train_loader = DataLoader(train_dataset,  batch_size=4,
                         shuffle=True, num_workers=4)
-test_loader = DataLoader(test_dataset,  batch_size=4,
+test_loader = DataLoader(test_dataset,  batch_size=1,
                         shuffle=True, num_workers=4)
 model = ResidualAttentionModel_92().cuda()
 print(model)
@@ -91,7 +91,8 @@ if is_train is True:
             acc_best = acc
             print('current best acc,', acc_best)
             torch.save(model.state_dict(), model_file)
-        if e in [2,5,8]:
+        if (e+1) / float(total_epoch) == 0.3 or (e+1) / float(total_epoch) == 0.6 or (e+1) / float(total_epoch) == 0.9:
+            
             lr /= 10
             print('reset learning rate to:', lr)
             for param_group in optimizer.param_groups:
