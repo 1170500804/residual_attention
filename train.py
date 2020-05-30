@@ -63,7 +63,7 @@ total_epoch = 1 #TODO: change epoch
 if is_train is True:
     if is_pretrain == True:
         model.load_state_dict((torch.load(model_file)))
-    for e in total_epoch:
+    for e in range(total_epoch):
         model.train()
         tims = time.time()
         for i, (images, labels) in enumerate(train_loader):
