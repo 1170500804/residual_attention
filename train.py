@@ -42,7 +42,7 @@ def test(model, test_loader, btrain=False, model_file=None):
     return correct / total
 
 
-transform = transforms.Compose([transforms.Resize((224,224)), transforms.RandomHorizontalFlip])
+transform = transforms.Compose([transforms.Resize((224,224)), transforms.RandomHorizontalFlip, transforms.ToTensor])
 train_dataset = GoogleStreetView(os.path.join('/home/liushuai/cleaned_images/train', 'description_train.csv'), transform=transform)
 test_dataset = GoogleStreetView(os.path.join('/home/liushuai/cleaned_images/validate', 'description_test.csv')
                                 , transform=transform, labels=train_dataset.labels)
