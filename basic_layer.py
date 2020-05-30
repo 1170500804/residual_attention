@@ -6,9 +6,9 @@ from torch.autograd import Variable
 import numpy as np
 
 
-class ResidualBlock(nn.Module):
+class Residual_Block(nn.Module):
     def __init__(self, input_channels, output_channels, stride=1):
-        super(ResidualBlock, self).__init__()
+        super(Residual_Block, self).__init__()
         self.input_channels = input_channels
         self.output_channels = output_channels
         self.stride = stride
