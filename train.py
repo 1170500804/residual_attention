@@ -62,7 +62,7 @@ criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9, nesterov=True, weight_decay=0.0001)
 is_train = True
 acc_best = 0
-total_epoch = 1 #TODO: change epoch
+total_epoch = 30 #TODO: change epoch
 if is_train is True:
     if is_pretrain == True:
         model.load_state_dict((torch.load(model_file)))
