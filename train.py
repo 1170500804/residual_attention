@@ -80,7 +80,7 @@ if is_train is True:
             # print("hello")
             if (i + 1) % 100 == 0:
                 print("Epoch [%d/%d], Iter [%d/%d] Loss: %.4f" % (
-                e + 1, total_epoch, i + 1, len(train_loader), loss.data[0]))
+                e + 1, total_epoch, i + 1, len(train_loader), loss.data.item()))
         print('epoch {} takes time: '.format(e+1)+str(time.time() - tims))
         print('evaluate test set:')
         acc = test(test, test_loader, btrain=True)
