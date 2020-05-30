@@ -21,18 +21,25 @@ def test(model, test_loader, btrain=False, model_file=None):
     class_total = list(0. for i in range(6))
 
     for images, labels in test_loader:
-        images = Variable(images.cuda())
-        labels = Variable(labels.cuda())
+        images = images.cuda()
+        labels = labels.cuda()
         outputs = model(images)
-        _, predicted = torch.max(outputs.data, 1)
+
+        _, predicted = torch.max(outputs, 1)
+
         total += labels.size(0)
+
         correct += (predicted == labels.data).sum()
-        #
-        c = (predicted == labels.data).squeeze()
-        for i in range(4):
-            label = labels.data[i]
-            class_correct[label] += c[i]
+
+        c = (predicted == labels).squeeze()
+        for i in range(labels.size(0)):
+            label = labels[i]
+            if labels.size(0) == 1:
+                class_correct[label] += c.item()
+            else:
+                class_correct[label] += c[i]
             class_total[label] += 1
+
 
     print('Accuracy of the model on the test images: %d %%' % (100 * float(correct) / total))
     print('Accuracy of the model on the test images:', float(correct) / total)
@@ -41,17 +48,17 @@ def test(model, test_loader, btrain=False, model_file=None):
             i+5001, 100 * class_correct[i] / class_total[i]))
     return correct / total
 
-train_dir = '/home/liushuai/cleaned_images/train'
-test_dir = '/home/liushuai/cleaned_images/validate'
+train_dir = '/data/sascha/Simcenter/cleaned_images/train'
+test_dir = '/data/sascha/Simcenter/cleaned_images/validate'
 # train_dir ='/home/liushuai/small_examples/images/train'
 # test_dir ='/home/liushuai/small_examples/images/validate'
 transform = transforms.Compose([transforms.Resize((224,224)), transforms.RandomHorizontalFlip(), transforms.ToTensor()])
 train_dataset = GoogleStreetView(os.path.join(train_dir, 'description_train.csv'), transform=transform)
 test_dataset = GoogleStreetView(os.path.join(test_dir, 'description_test.csv')
                                 , transform=transform, labels=train_dataset.labels)
-train_loader = DataLoader(train_dataset,  batch_size=4,
-                        shuffle=True, num_workers=4)
-test_loader = DataLoader(test_dataset,  batch_size=1,
+train_loader = DataLoader(train_dataset,  batch_size=8,
+                        shuffle=True, num_workers=8)
+test_loader = DataLoader(test_dataset,  batch_size=8,
                         shuffle=True, num_workers=4)
 model = ResidualAttentionModel_92().cuda()
 print(model)
@@ -81,6 +88,7 @@ if is_train is True:
             loss.backward()
             optimizer.step()
             # print("hello")
+
             if (i + 1) % 100 == 0:
                 print("Epoch [%d/%d], Iter [%d/%d] Loss: %.4f" % (
                 e + 1, total_epoch, i + 1, len(train_loader), loss.data.item()))
