@@ -10,7 +10,7 @@ class Residual_Block(nn.Module):
         self.bn1 = nn.BatchNorm2d(in_channel)
         self.relu = nn.ReLU(inplace=True)
         self.conv1 = nn.Conv2d(in_channel, int(out_channel/4), 1, 1, bias=False)
-        self.bn2 = nn.BatchNorm2d(out_channel/4)
+        self.bn2 = nn.BatchNorm2d(int(out_channel/4))
         self.conv2 = nn.Conv2d(int(out_channel / 4), int(out_channel / 4), 3, stride=stride, bias=False)
         self.bn3 = nn.BatchNorm2d(int(out_channel/4))
         self.conv3 = nn.Conv2d(int(out_channel / 4), out_channel, 1, stride=1, bias=False)
