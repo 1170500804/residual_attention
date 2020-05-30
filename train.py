@@ -41,10 +41,10 @@ def test(model, test_loader, btrain=False, model_file=None):
             i+5001, 100 * class_correct[i] / class_total[i]))
     return correct / total
 
-# train_dir = '/home/liushuai/cleaned_images/train'
-# test_dir = '/home/liushuai/cleaned_images/validate'
-train_dir ='/home/liushuai/small_examples/images/train'
-test_dir ='/home/liushuai/small_examples/images/validate'
+train_dir = '/home/liushuai/cleaned_images/train'
+test_dir = '/home/liushuai/cleaned_images/validate'
+# train_dir ='/home/liushuai/small_examples/images/train'
+# test_dir ='/home/liushuai/small_examples/images/validate'
 transform = transforms.Compose([transforms.Resize((224,224)), transforms.RandomHorizontalFlip(), transforms.ToTensor()])
 train_dataset = GoogleStreetView(os.path.join(train_dir, 'description_train.csv'), transform=transform)
 test_dataset = GoogleStreetView(os.path.join(test_dir, 'description_test.csv')
