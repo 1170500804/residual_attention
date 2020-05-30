@@ -29,7 +29,7 @@ def test(model, test_loader, btrain=False, model_file=None):
         correct += (predicted == labels.data).sum()
         #
         c = (predicted == labels.data).squeeze()
-        for i in range(20):
+        for i in range(4):
             label = labels.data[i]
             class_correct[label] += c[i]
             class_total[label] += 1
