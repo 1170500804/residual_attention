@@ -41,10 +41,13 @@ def test(model, test_loader, btrain=False, model_file=None):
             i, 100 * class_correct[i] / class_total[i]))
     return correct / total
 
-
+train_dir = '/home/liushuai/cleaned_images/train'
+test_dir = '/home/liushuai/cleaned_images/validate'
+train_dir ='/home/liushuai/small_examples/images/train'
+test_dir ='/home/liushuai/small_examples/images/validate'
 transform = transforms.Compose([transforms.Resize((224,224)), transforms.RandomHorizontalFlip(), transforms.ToTensor()])
-train_dataset = GoogleStreetView(os.path.join('/home/liushuai/cleaned_images/train', 'description_train.csv'), transform=transform)
-test_dataset = GoogleStreetView(os.path.join('/home/liushuai/cleaned_images/validate', 'description_test.csv')
+train_dataset = GoogleStreetView(os.path.join(train_dir, 'description_train.csv'), transform=transform)
+test_dataset = GoogleStreetView(os.path.join(test_dir, 'description_test.csv')
                                 , transform=transform, labels=train_dataset.labels)
 train_loader = DataLoader(train_dataset,  batch_size=4,
                         shuffle=True, num_workers=4)
@@ -57,7 +60,7 @@ is_pretrain = False
 lr = 0.1  # 0.1
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9, nesterov=True, weight_decay=0.0001)
-is_train = False
+is_train = True
 acc_best = 0
 total_epoch = 1 #TODO: change epoch
 if is_train is True:

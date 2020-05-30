@@ -17,5 +17,5 @@ def generate(root_dir, is_train=True):
                 df.loc[len(df)] = [os.path.join(cur_dir, l), cur_cat]
         df.to_csv(os.path.join(root_dir, 'description_test.csv'))
 
-generate('/home/liushuai/cleaned_images/train')
-generate('/home/liushuai/cleaned_images/validate', is_train=False)
+generate('/home/liushuai/small_examples/images/train')
+generate('/home/liushuai/small_examples/images/validate', is_train=False)
