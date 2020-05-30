@@ -51,7 +51,7 @@ test_dataset = GoogleStreetView(os.path.join(test_dir, 'description_test.csv')
                                 , transform=transform, labels=train_dataset.labels)
 train_loader = DataLoader(train_dataset,  batch_size=4,
                         shuffle=True, num_workers=4)
-test_loader = DataLoader(test_dataset,  batch_size=20,
+test_loader = DataLoader(test_dataset,  batch_size=4,
                         shuffle=True, num_workers=4)
 model = ResidualAttentionModel_92().cuda()
 print(model)
@@ -60,7 +60,7 @@ is_pretrain = False
 lr = 0.1  # 0.1
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9, nesterov=True, weight_decay=0.0001)
-is_train = True
+is_train = False
 acc_best = 0
 total_epoch = 1 #TODO: change epoch
 if is_train is True:
