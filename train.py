@@ -20,7 +20,7 @@ def test(model, test_loader, btrain=False, model_file=None):
     class_correct = list(0. for i in range(6))
     class_total = list(0. for i in range(6))
 
-    for i,(images, labels) in enumerate(test_loader):
+    for images, labels in test_loader:
         images = Variable(images.cuda())
         labels = Variable(labels.cuda())
         outputs = model(images)
