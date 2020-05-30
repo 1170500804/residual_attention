@@ -3,6 +3,7 @@ import os
 import torch
 import pandas as pd
 from skimage import io, transform
+from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
 from torch.utils.data import Dataset, DataLoader
@@ -24,7 +25,7 @@ class GoogleStreetView(Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
         img_name = self.df.loc[idx, 'dir']
-        image = io.imread(img_name)
+        image = Image.open(img_name)
         label = self.labels[self.df.loc[idx, 'class']]
         if(self.tranform):
             image = self.tranform(image)
