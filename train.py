@@ -92,7 +92,7 @@ if is_train is True:
             print('current best acc,', acc_best)
             torch.save(model.state_dict(), model_file)
         if (e+1) / float(total_epoch) == 0.3 or (e+1) / float(total_epoch) == 0.6 or (e+1) / float(total_epoch) == 0.9:
-            
+
             lr /= 10
             print('reset learning rate to:', lr)
             for param_group in optimizer.param_groups:
