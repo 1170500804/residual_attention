@@ -14,17 +14,40 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import io
-import tensorflow as tf
+from torch.utils.tensorboard import SummaryWriter
 import pandas as pd
 import datetime
+import argparse
+
+parser = argparse.ArgumentParser(description='Train Residual Attention')
+parser.add_argument('--train-data', default='/home/liushuai/small_examples/images/train', type=str,
+                    help='Folder containing train data')
+parser.add_argument('--val-data', default='/home/liushuai/small_examples/images/validate', type=str,
+                    help='Folder containing validation data')
+args = parser.parse_args()
+
+# train_dir = '/home/liushuai/cleaned_images/train'
+# test_dir = '/home/liushuai/cleaned_images/validate'
+# train_dir = '/data/sascha/Simcenter/cleaned_images/train'
+# test_dir = '/data/sascha/Simcenter/cleaned_images/validate'
+#train_dir ='/home/liushuai/small_examples/images/train'
+#test_dir ='/home/liushuai/small_examples/images/validate'
+train_dir = args.train_data
+test_dir = args.val_data
+
+val_summary_writer = None
+
 def push_to_tensorboard(cm, f1_score, epoch, classes):
-    currentTime = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    val_log_dir = 'log_' + currentTime
-    val_summary_writer = tf.summary.create_file_writer(val_log_dir)
-    with val_summary_writer.as_default():
-        tf.summary.scalar('f1_score', f1_score, step=epoch)
-        tf.summary.image('confusion_matrix',
-                         construct_confusion_matrix_image(classes, cm), step=epoch)
+    global val_summary_writer
+
+    if val_summary_writer == None:
+        currentTime = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        val_log_dir = 'log_' + currentTime
+        val_summary_writer = SummaryWriter(val_log_dir)
+
+    val_summary_writer.add_scalar('f1_score', f1_score, epoch)
+    val_summary_writer.add_image('confusion_matrix',
+                     construct_confusion_matrix_image(classes, cm), epoch)
 
 
 def construct_confusion_matrix_image(classes, con_mat):
@@ -40,15 +63,15 @@ def construct_confusion_matrix_image(classes, con_mat):
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
 
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png')
+    figure.canvas.draw()
 
-    plt.close(figure)
-    buf.seek(0)
-    image = tf.image.decode_png(buf.getvalue(), channels=4)
+    # Now we can save it to a numpy array.
+    data_confusion_matrix = np.fromstring(figure.canvas.tostring_rgb(), dtype=np.uint8, sep='')
+    data_confusion_matrix = data_confusion_matrix.reshape(figure.canvas.get_width_height()[::-1] + (3,))
 
-    image = tf.expand_dims(image, 0)
-    return image
+    data_confusion_matrix = torch.from_numpy(np.transpose(data_confusion_matrix, (2, 0, 1)))
+
+    return data_confusion_matrix
 
 
 def test(model, test_loader, btrain=False, model_file=None):
@@ -93,19 +116,14 @@ def test(model, test_loader, btrain=False, model_file=None):
     for i in range(6):
         print('Accuracy of %5s : %2d %%' % (
             i+5001, 100 * class_correct[i] / class_total[i]))
-    f1_score = sklearn.metrics.f1_score(np.array(ground_truth), np.array(predictions))
+    f1_score = sklearn.metrics.f1_score(np.array(ground_truth), np.array(predictions),average='macro')
     confusion_matrix = sklearn.metrics.confusion_matrix(np.array(ground_truth), np.array(predictions))
     print('the f1 score is: '+str(f1_score))
     print('the confusion matrix is: ')
     print(confusion_matrix)
     return correct / total, f1_score, confusion_matrix
 
-# train_dir = '/home/liushuai/cleaned_images/train'
-# test_dir = '/home/liushuai/cleaned_images/validate'
-# train_dir = '/data/sascha/Simcenter/cleaned_images/train'
-# test_dir = '/data/sascha/Simcenter/cleaned_images/validate'
-train_dir ='/home/liushuai/small_examples/images/train'
-test_dir ='/home/liushuai/small_examples/images/validate'
+
 transform = transforms.Compose([transforms.Resize((224,224)), transforms.RandomHorizontalFlip(), transforms.ToTensor()])
 train_dataset = GoogleStreetView(os.path.join(train_dir, 'description_train.csv'), transform=transform)
 test_dataset = GoogleStreetView(os.path.join(test_dir, 'description_test.csv')
@@ -118,10 +136,10 @@ model = ResidualAttentionModel_92().cuda()
 print(model)
 model_file = 'best_accuracy.pkl'
 is_pretrain = False
-lr = 0.1  # 0.1
+lr = 0.001  # 0.1
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9, nesterov=True, weight_decay=0.0001)
-is_train = False
+is_train = True
 acc_best = 0
 total_epoch = 30 #TODO: change epoch
 if is_train is True:
