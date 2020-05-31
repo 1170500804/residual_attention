@@ -9,6 +9,48 @@ from preprocessing import GoogleStreetView
 import torch.optim as optim
 from torch.autograd import Variable
 import time
+import sklearn.metrics
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import io
+import tensorflow as tf
+import pandas as pd
+import datetime
+def push_to_tensorboard(cm, f1_score, epoch, classes):
+    currentTime = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    val_log_dir = 'log_' + currentTime
+    val_summary_writer = tf.summary.create_file_writer(val_log_dir)
+    with val_summary_writer.as_default():
+        tf.summary.scalar('f1_score', f1_score, step=epoch)
+        tf.summary.image('confusion_matrix',
+                         construct_confusion_matrix_image(classes, cm), step=epoch)
+
+
+def construct_confusion_matrix_image(classes, con_mat):
+    con_mat_norm = np.around(con_mat.astype('float') / con_mat.sum(axis=1)[:, np.newaxis], decimals=2)
+
+    con_mat_df = pd.DataFrame(con_mat_norm,
+                              index=classes,
+                              columns=classes)
+
+    figure = plt.figure(figsize=(8, 8))
+    sns.heatmap(con_mat_df, annot=True, cmap=plt.cm.Blues)
+    plt.tight_layout()
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+
+    plt.close(figure)
+    buf.seek(0)
+    image = tf.image.decode_png(buf.getvalue(), channels=4)
+
+    image = tf.expand_dims(image, 0)
+    return image
+
+
 def test(model, test_loader, btrain=False, model_file=None):
     if not btrain:
         model.load_state_dict(model_file)
@@ -19,13 +61,18 @@ def test(model, test_loader, btrain=False, model_file=None):
     #
     class_correct = list(0. for i in range(6))
     class_total = list(0. for i in range(6))
-
-    for images, labels in test_loader:
+    predictions = []
+    ground_truth = []
+    for i, (images, labels) in enumerate(test_loader):
         images = images.cuda()
         labels = labels.cuda()
         outputs = model(images)
 
         _, predicted = torch.max(outputs, 1)
+        predicted_list = predicted.tolist()
+        label_list = labels.tolist()
+        predictions.extend(predicted_list)
+        ground_truth.extend(label_list)
 
         total += labels.size(0)
 
@@ -46,12 +93,17 @@ def test(model, test_loader, btrain=False, model_file=None):
     for i in range(6):
         print('Accuracy of %5s : %2d %%' % (
             i+5001, 100 * class_correct[i] / class_total[i]))
-    return correct / total
+    f1_score = sklearn.metrics.f1_score(np.array(ground_truth), np.array(predictions))
+    confusion_matrix = sklearn.metrics.confusion_matrix(np.array(ground_truth), np.array(predictions))
+    print('the f1 score is: '+str(f1_score))
+    print('the confusion matrix is: ')
+    print(confusion_matrix)
+    return correct / total, f1_score, confusion_matrix
 
-train_dir = '/data/sascha/Simcenter/cleaned_images/train'
-test_dir = '/data/sascha/Simcenter/cleaned_images/validate'
-# train_dir ='/home/liushuai/small_examples/images/train'
-# test_dir ='/home/liushuai/small_examples/images/validate'
+# train_dir = '/home/liushuai/cleaned_images/train'
+# test_dir = '/home/liushuai/cleaned_images/validate'
+train_dir ='/home/liushuai/small_examples/images/train'
+test_dir ='/home/liushuai/small_examples/images/validate'
 transform = transforms.Compose([transforms.Resize((224,224)), transforms.RandomHorizontalFlip(), transforms.ToTensor()])
 train_dataset = GoogleStreetView(os.path.join(train_dir, 'description_train.csv'), transform=transform)
 test_dataset = GoogleStreetView(os.path.join(test_dir, 'description_test.csv')
@@ -94,7 +146,8 @@ if is_train is True:
                 e + 1, total_epoch, i + 1, len(train_loader), loss.data.item()))
         print('epoch {} takes time: '.format(e+1)+str(time.time() - tims))
         print('evaluate test set:')
-        acc = test(model, test_loader, btrain=True)
+        acc, f1, cm = test(model, test_loader, btrain=True)
+        push_to_tensorboard(cm, f1, e, sorted(train_dataset.labels.keys()))
         if acc > acc_best:
             acc_best = acc
             print('current best acc,', acc_best)
@@ -111,4 +164,5 @@ if is_train is True:
             # Save the Model
     torch.save(model.state_dict(), 'last_model_92_sgd.pkl')
 else:
-    test(model, test_loader, btrain=True, model_file=model_file)
+    acc, f1, cm = test(model, test_loader, btrain=True, model_file=model_file)
+    push_to_tensorboard(cm, f1, e, sorted(train_dataset.labels.keys()))
