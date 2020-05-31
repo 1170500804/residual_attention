@@ -121,7 +121,7 @@ is_pretrain = False
 lr = 0.1  # 0.1
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9, nesterov=True, weight_decay=0.0001)
-is_train = True
+is_train = False
 acc_best = 0
 total_epoch = 30 #TODO: change epoch
 if is_train is True:
@@ -167,4 +167,4 @@ if is_train is True:
     torch.save(model.state_dict(), 'last_model_92_sgd.pkl')
 else:
     acc, f1, cm = test(model, test_loader, btrain=True, model_file=model_file)
-    push_to_tensorboard(cm, f1, e, sorted(train_dataset.labels.keys()))
+    push_to_tensorboard(cm, f1, 1, sorted(train_dataset.labels.keys()))
