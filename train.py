@@ -203,4 +203,6 @@ if is_train is True:
     torch.save(model.state_dict(), 'last_model_92_sgd.pkl')
 else:
     acc, f1, cm = test(model, test_loader, btrain=True, model_file=model_file)
-    push_to_tensorboard(cm, f1, 1, sorted(train_dataset.labels.keys()))
+    raise NotImplementedError('Sorry I made this part unusable for now')
+    # Sorry I made this part unusable for now
+    #push_to_tensorboard(cm, f1, 1, sorted(train_dataset.labels.keys()))
