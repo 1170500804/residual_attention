@@ -2,6 +2,8 @@ import torch
 import torchvision
 import torch.nn as nn
 import os
+
+from sklearn.metrics import classification_report, precision_recall_fscore_support
 from torchvision import transforms, models
 from torch.utils.data import DataLoader
 from residual_attention_network import ResidualAttentionModel_92
@@ -26,29 +28,12 @@ parser.add_argument('--val-data', default='/home/liushuai/small_examples/images/
                     help='Folder containing validation data')
 args = parser.parse_args()
 
-# train_dir = '/home/liushuai/cleaned_images/train'
-# test_dir = '/home/liushuai/cleaned_images/validate'
-# train_dir = '/data/sascha/Simcenter/cleaned_images/train'
-# test_dir = '/data/sascha/Simcenter/cleaned_images/validate'
-#train_dir ='/home/liushuai/small_examples/images/train'
-#test_dir ='/home/liushuai/small_examples/images/validate'
 train_dir = args.train_data
 test_dir = args.val_data
 
-val_summary_writer = None
-
-def push_to_tensorboard(cm, f1_score, epoch, classes):
-    global val_summary_writer
-
-    if val_summary_writer == None:
-        currentTime = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-        val_log_dir = 'log_' + currentTime
-        val_summary_writer = SummaryWriter(val_log_dir)
-
-    val_summary_writer.add_scalar('f1_score', f1_score, epoch)
-    val_summary_writer.add_image('confusion_matrix',
-                     construct_confusion_matrix_image(classes, cm), epoch)
-
+currentTime = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+val_log_dir = os.path.join('runs','log_' + currentTime)
+summary_writer = SummaryWriter(val_log_dir)
 
 def construct_confusion_matrix_image(classes, con_mat):
     con_mat_norm = np.around(con_mat.astype('float') / con_mat.sum(axis=1)[:, np.newaxis], decimals=2)
@@ -74,7 +59,7 @@ def construct_confusion_matrix_image(classes, con_mat):
     return data_confusion_matrix
 
 
-def test(model, test_loader, btrain=False, model_file=None):
+def test(model, criterion, test_loader, btrain=False, model_file=None):
     if not btrain:
         model.load_state_dict(model_file)
     model.eval()
@@ -85,7 +70,8 @@ def test(model, test_loader, btrain=False, model_file=None):
     class_correct = list(0. for i in range(6))
     class_total = list(0. for i in range(6))
     predictions = []
-    ground_truth = []
+    ground_truths = []
+    avg_val_loss = 0
     for i, (images, labels) in enumerate(test_loader):
         images = images.cuda()
         labels = labels.cuda()
@@ -95,9 +81,12 @@ def test(model, test_loader, btrain=False, model_file=None):
         predicted_list = predicted.tolist()
         label_list = labels.tolist()
         predictions.extend(predicted_list)
-        ground_truth.extend(label_list)
+        ground_truths.extend(label_list)
 
         total += labels.size(0)
+        loss = criterion(outputs, labels)
+
+        avg_val_loss += loss.detach().cpu().numpy()
 
         correct += (predicted == labels.data).sum()
 
@@ -116,8 +105,15 @@ def test(model, test_loader, btrain=False, model_file=None):
     for i in range(6):
         print('Accuracy of %5s : %2d %%' % (
             i+5001, 100 * class_correct[i] / class_total[i]))
-    f1_score = sklearn.metrics.f1_score(np.array(ground_truth), np.array(predictions),average='macro')
-    confusion_matrix = sklearn.metrics.confusion_matrix(np.array(ground_truth), np.array(predictions))
+    f1_score = sklearn.metrics.f1_score(np.array(ground_truths), np.array(predictions),average='micro')
+    confusion_matrix = sklearn.metrics.confusion_matrix(np.array(ground_truths), np.array(predictions))
+
+    summary_writer.add_scalar('Val/Loss', avg_val_loss.mean(), epoch)
+    report_items = precision_recall_fscore_support(ground_truths, predictions, average='micro')
+    summary_writer.add_scalar('Val/F1', report_items[2], epoch)
+    summary_writer.add_scalar('Val/Precision', report_items[0], epoch)
+    summary_writer.add_scalar('Val/Recall', report_items[1], epoch)
+
     print('the f1 score is: '+str(f1_score))
     print('the confusion matrix is: ')
     print(confusion_matrix)
@@ -141,13 +137,18 @@ criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9, nesterov=True, weight_decay=0.0001)
 is_train = True
 acc_best = 0
-total_epoch = 30 #TODO: change epoch
+total_epochs = 30 #TODO: change epoch
 if is_train is True:
     if is_pretrain == True:
         model.load_state_dict((torch.load(model_file)))
-    for e in range(total_epoch):
+    for epoch in range(total_epochs):
         model.train()
         tims = time.time()
+        avg_train_loss = 0
+
+        predictions =  []
+        ground_truths = []
+
         for i, (images, labels) in enumerate(train_loader):
             images = Variable(images.cuda())
             # print(images.data)
@@ -159,20 +160,37 @@ if is_train is True:
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
-            # print("hello")
+
+            avg_train_loss += loss.detach().cpu().numpy()
+            _, predicted = torch.max(outputs, 1)
+
+            predictions.extend(predicted.tolist())
+            ground_truths.extend(labels.tolist())
 
             if (i + 1) % 100 == 0:
                 print("Epoch [%d/%d], Iter [%d/%d] Loss: %.4f" % (
-                e + 1, total_epoch, i + 1, len(train_loader), loss.data.item()))
-        print('epoch {} takes time: '.format(e+1)+str(time.time() - tims))
+                    epoch + 1, total_epochs, i + 1, len(train_loader), loss.data.item()))
+
+        confusion_matrix = sklearn.metrics.confusion_matrix(np.array(ground_truths), np.array(predictions))
+        summary_writer.add_image('Train/confusion_matrix',
+                                 construct_confusion_matrix_image(train_dataset.classes, confusion_matrix), epoch)
+        print('epoch {} takes time: '.format(epoch + 1) + str(time.time() - tims))
+        summary_writer.add_scalar('Train/Loss', avg_train_loss.mean(), epoch)
+        report_items = precision_recall_fscore_support(ground_truths, predictions,average='micro')
+        summary_writer.add_scalar('Train/F1', report_items[2], epoch)
+        summary_writer.add_scalar('Train/Precision', report_items[0], epoch)
+        summary_writer.add_scalar('Train/Recall', report_items[1], epoch)
+
         print('evaluate test set:')
-        acc, f1, cm = test(model, test_loader, btrain=True)
-        push_to_tensorboard(cm, f1, e, sorted(train_dataset.labels.keys()))
+        acc, f1, cm = test(model, criterion, test_loader, btrain=True)
+        summary_writer.add_image('Val/confusion_matrix',
+                                 construct_confusion_matrix_image(train_dataset.classes, cm), epoch)
+
         if acc > acc_best:
             acc_best = acc
             print('current best acc,', acc_best)
             torch.save(model.state_dict(), model_file)
-        if (e+1) / float(total_epoch) == 0.3 or (e+1) / float(total_epoch) == 0.6 or (e+1) / float(total_epoch) == 0.9:
+        if (epoch + 1) / float(total_epochs) == 0.3 or (epoch + 1) / float(total_epochs) == 0.6 or (epoch + 1) / float(total_epochs) == 0.9:
 
             lr /= 10
             print('reset learning rate to:', lr)

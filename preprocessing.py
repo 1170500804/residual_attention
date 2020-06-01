@@ -7,12 +7,12 @@ class GoogleStreetView(Dataset):
     def __init__(self, csv_path, transform=None, labels=None):
         self.df = pd.read_csv(csv_path)
         self.transform = transform
-        classes = self.df.loc[:,'class'].unique()
+        self.classes = self.df.loc[:,'class'].unique()
         if(labels):
             self.labels = labels
         else:
             self.labels = {}
-            for c in classes:
+            for c in self.classes:
                 self.labels[c] = int(c) - 5001
     def __len__(self):
         return len(self.df)
