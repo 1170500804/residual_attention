@@ -135,8 +135,9 @@ is_pretrain = False
 lr = 0.001  # 0.1
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9, nesterov=True, weight_decay=0.0001)
+#optimizer = optim.Adam(model.parameters())#, lr=lr, momentum=0.9, nesterov=True, weight_decay=0.0001)
 is_train = True
-acc_best = 0
+best_f1 = 0
 total_epochs = 30 #TODO: change epoch
 if is_train is True:
     if is_pretrain == True:
@@ -186,9 +187,9 @@ if is_train is True:
         summary_writer.add_image('Val/confusion_matrix',
                                  construct_confusion_matrix_image(train_dataset.classes, cm), epoch)
 
-        if acc > acc_best:
-            acc_best = acc
-            print('current best acc,', acc_best)
+        if f1 > best_f1:
+            best_f1 = f1
+            print('current best f1,', best_f1)
             torch.save(model.state_dict(), model_file)
         if (epoch + 1) / float(total_epochs) == 0.3 or (epoch + 1) / float(total_epochs) == 0.6 or (epoch + 1) / float(total_epochs) == 0.9:
 
@@ -200,7 +201,7 @@ if is_train is True:
             # optimizer = torch.optim.Adam(model.parameters(), lr=lr)
             # optim.SGD(model.parameters(), lr=lr, momentum=0.9, nesterov=True, weight_decay=0.0001)
             # Save the Model
-    torch.save(model.state_dict(), 'last_model_92_sgd.pkl')
+        torch.save(model.state_dict(), 'checkpoint.pkl')
 else:
     acc, f1, cm = test(model, test_loader, btrain=True, model_file=model_file)
     raise NotImplementedError('Sorry I made this part unusable for now')
